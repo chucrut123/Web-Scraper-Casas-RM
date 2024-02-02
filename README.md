@@ -1,5 +1,5 @@
 # Web-Scraper-Propiedades
-Web Scraper que consigue datos principalmente de chilepropiedades.cl y algunos complementarios de bcentral.cl.
+Web Scraper que consigue datos principalmente de chilepropiedades.cl
 
 Este scraper se dedica a la extracción de datos de casas en venta. Usando las librerías BeautifulSoup, Pandas, Requests.
 
