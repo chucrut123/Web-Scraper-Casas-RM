@@ -1,7 +1,7 @@
 # Web-Scraper-Propiedades
 Web Scraper que consigue datos principalmente de chilepropiedades.cl y algunos complementarios de bcentral.cl.
 
-Este scraper se dedica a la extracción de datos de casas en venta. Usando las librerías BeautifulSoup, Pandas, Requests y Pyfiglet.
+Este scraper se dedica a la extracción de datos de casas en venta. Usando las librerías BeautifulSoup, Pandas, Requests.
 
 **-Price_CLP:** Precio de casa en pesos chilenos (CLP) 
 
