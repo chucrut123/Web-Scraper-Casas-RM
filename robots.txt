@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Disallow: /contactar/publicacion/*
+Disallow: /*.php
+Disallow: /api/publicaciones/related
+Disallow: /publicacion/*/revelar-datos-contacto
+Disallow: /misFavoritos/*
+Disallow: /misPublicaciones/*
+Disallow: /validarUsuarioManual
+Disallow: /favoritos/*
+Disallow: /mis-publicaciones/*
+Disallow: /validar-usuario-manual
+
+Crawl-delay: 2
+Sitemap: https://chilepropiedades.cl/sitemaps/sitemapindex.xml
