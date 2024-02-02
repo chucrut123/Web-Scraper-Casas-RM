@@ -19,8 +19,12 @@ USDtoCLP = round(float(input("Ingrese el valor del USD en CLP: ")))
 
 print(f"\nSe encontraron un total de {max_pages} paginas")
 num_pages = int(input("Ingrese el numero de paginas a scrapear: "))
+start_point = int(input("Ingrese el numero de pagina donde desea comenzar: "))
 
-data = scrapper.extract_data(num_pages)
+if start_point < 0:
+    start_point = 0
+
+data = scrapper.extract_data(num_pages, start_point)
 
 while True:
     check_cleaner = input("Desea limpiar los datos? (y/n): ").lower()

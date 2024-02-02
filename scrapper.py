@@ -168,7 +168,7 @@ def find_realtor(casa: str) -> str:
         return realtor
 
 
-def extract_data(num_pages: int) -> pd.DataFrame:
+def extract_data(num_pages: int, start_point: int) -> pd.DataFrame:
     """ Extract data from the website and stores it in a Pandas DataFrame """
 
     # Setting up DataFrame for storing the extracted data
@@ -178,7 +178,7 @@ def extract_data(num_pages: int) -> pd.DataFrame:
     casas_df = pd.DataFrame(columns=columns)
 
     # Iterate over the number of pages
-    for page in range(num_pages):
+    for page in range(start_point, num_pages):
 
         # According to robots.txt the crawl delay is 2 seconds
         sleep(2)
@@ -190,7 +190,12 @@ def extract_data(num_pages: int) -> pd.DataFrame:
         # and make a GET request to the specified URL, storing the response text.
         headers = requests.utils.default_headers()# type: ignore
         headers.update({'User-Agent': 'My User Agent 1.0'})
-        html_text = requests.get(url= url, headers=headers).text
+
+        try:
+            html_text = requests.get(url= url, headers=headers).text
+        except:
+            print(f"Error en la pagina {page}")
+            continue
 
         # Parse the HTML content of the website using BeautifulSoup
         soup = BeautifulSoup(html_text, "lxml")
