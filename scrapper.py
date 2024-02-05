@@ -188,9 +188,11 @@ def extract_data(num_pages: int, start_point: int) -> pd.DataFrame:
 
         # Set up custom headers with a User-Agent
         # and make a GET request to the specified URL, storing the response text.
-        headers = requests.utils.default_headers()# type: ignore
+        headers = requests.utils.default_headers()
         headers.update({'User-Agent': 'My User Agent 1.0'})
 
+        # Try to get the HTML content of the website
+        # Possible timeout or connection errors
         try:
             html_text = requests.get(url= url, headers=headers).text
         except:
