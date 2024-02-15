@@ -5,6 +5,26 @@ import requests
 from time import sleep
 import re
 
+# Global tuple
+property_types = (
+    "bodega",
+    "casa",
+    "departamento",
+    "estacionamiento",
+    "estudio",
+    "hotel",
+    "local-comercial",
+    "loft",
+    "lote-de-cementerio",
+    "oficina",
+    "parcela",
+    "sitio",
+    "terreno",
+    "terreno-agricola",
+    "terreno-forestal",
+    "terreno-industrial",
+)
+
 
 # Function to extract numbers from a string
 def return_numbers(str_number: str) -> list[int]:
@@ -19,37 +39,48 @@ def return_numbers(str_number: str) -> list[int]:
     return re.findall(r"\d+", str_number)
 
 
-def extract_total_pages() -> int:
+def extract_total_pages() -> dict[str, int]:
     """Extract the total number of pages from the website"""
 
-    # Website URL
-    url = f"https://chilepropiedades.cl/propiedades/venta/casa/region-metropolitana-de-santiago-rm/0"
+    max_pages_per_type = {}
 
-    # Set up custom headers with a User-Agent
-    # and make a GET request to the specified URL, storing the response text.
-    headers = requests.utils.default_headers()  # type: ignore
-    headers.update({"User-Agent": "My User Agent 1.0"})
-    html_text = requests.get(url=url, headers=headers).text
+    for property_type in property_types:
 
-    # Parse the HTML content of the website using BeautifulSoup
-    soup = BeautifulSoup(html_text, "lxml")
+        # Website URL
+        url = f"https://chilepropiedades.cl/propiedades/venta/{property_type}/region-metropolitana-de-santiago-rm/0"
 
-    # Find the <span> element that contains the total number of pages
-    total_pages_span = soup.find(
-        "div", class_="clp-results-text-container d-none d-sm-block col-sm-6 text-right"
-    )
+        # Set up custom headers with a User-Agent
+        # and make a GET request to the specified URL, storing the response text.
+        headers = requests.utils.default_headers()  # type: ignore
+        headers.update({"User-Agent": "My User Agent 1.0"})
+        html_text = requests.get(url=url, headers=headers).text
 
-    # Parse the content of the div to extract the total number of pages
-    max_pages = total_pages_span.text.replace(" ", "").replace("\n", "")
+        # Parse the HTML content of the website using BeautifulSoup
+        soup = BeautifulSoup(html_text, "lxml")
 
-    return int(return_numbers(max_pages)[0]) + 1
+        # Find the <span> element that contains the total number of pages
+        total_pages_span = soup.find(
+            "div",
+            class_="clp-results-text-container d-none d-sm-block col-sm-6 text-right",
+        )
+
+        # Parse the content of the div to extract the total number of pages
+        try:
+            max_pages = total_pages_span.text.replace(" ", "").replace("\n", "")
+            max_pages = int(return_numbers(max_pages)[0]) + 1
+        except AttributeError:
+            max_pages = 0
+
+        max_pages_per_type[property_type] = max_pages
+
+    return max_pages_per_type
 
 
-def find_price(casa: str) -> str:
+def find_price(property: str) -> str:
     """Extract price from the house card"""
 
     price = (
-        casa.find("a", class_="d-block text-ellipsis clp-big-value")
+        property.find("a", class_="d-block text-ellipsis clp-big-value")
         .text.replace(" ", "")
         .replace("\n", "")
         .replace("$", "")
@@ -58,10 +89,10 @@ def find_price(casa: str) -> str:
     return price
 
 
-def find_location(casa: str) -> list[str]:
+def find_location(property: str) -> list[str]:
     """Extract location from the house card"""
 
-    location = casa.h2.a.text.replace(" ", "").replace("\n", "").split(",")
+    location = property.h2.a.text.replace(" ", "").replace("\n", "").split(",")
 
     comuna = location[0]
     ubicacion = location[1].replace("PublicaciónReciente", "")
@@ -69,10 +100,10 @@ def find_location(casa: str) -> list[str]:
     return [comuna, ubicacion]
 
 
-def find_dorms(casa: str) -> int:
+def find_dorms(property: str) -> int:
     """Extract number of dorms from the house card"""
 
-    dorms = casa.find("span", title="Habitaciones")
+    dorms = property.find("span", title="Habitaciones")
 
     if dorms == None:
         return 0
@@ -83,10 +114,10 @@ def find_dorms(casa: str) -> int:
     return dorms[0]
 
 
-def find_baths(casa: str) -> int:
+def find_baths(property: str) -> int:
     """Extract number of baths from the house card"""
 
-    baths = casa.find("span", title="Baños")
+    baths = property.find("span", title="Baños")
 
     if baths == None:
         return 0
@@ -97,10 +128,10 @@ def find_baths(casa: str) -> int:
     return baths[0]
 
 
-def find_built_area(casa: str) -> int:
+def find_built_area(property: str) -> int:
     """Extract the built area in sqr meters from the house card"""
 
-    built_area = casa.find(
+    built_area = property.find(
         "span", class_="clp-feature-value", title="Superficie Construida"
     )
 
@@ -113,10 +144,12 @@ def find_built_area(casa: str) -> int:
     return built_area[0]
 
 
-def find_total_area(casa: str) -> int:
+def find_total_area(property: str) -> int:
     """Extract the total area in sqr meters from the house card"""
 
-    total_area = casa.find("span", class_="clp-feature-value", title="Superficie Total")
+    total_area = property.find(
+        "span", class_="clp-feature-value", title="Superficie Total"
+    )
 
     if total_area == None:
         return 0
@@ -127,10 +160,10 @@ def find_total_area(casa: str) -> int:
     return total_area[0]
 
 
-def find_parking(casa: str) -> int:
+def find_parking(property: str) -> int:
     """Extract the number of parking spaces from the house card"""
 
-    parking = casa.find("span", title="Estacionamientos")
+    parking = property.find("span", title="Estacionamientos")
 
     if parking == None:
         return 0
@@ -141,19 +174,19 @@ def find_parking(casa: str) -> int:
     return parking[0]
 
 
-def find_id(casa: str) -> int:
+def find_id(property: str) -> int:
     """Extract the id of the house"""
 
-    id = casa.find("div", class_="d-md-flex mt-2 align-items-center").div.text
+    id = property.find("div", class_="d-md-flex mt-2 align-items-center").div.text
     id = return_numbers(id)
 
     return id[0]
 
 
-def find_realtor(casa: str) -> str:
+def find_realtor(property: str) -> str:
     """Extract the realtor of the house"""
 
-    realtor = casa.find("a", class_="imagen-corredora-list-clp")
+    realtor = property.find("a", class_="imagen-corredora-list-clp")
 
     if realtor == None:
         return None
@@ -164,165 +197,180 @@ def find_realtor(casa: str) -> str:
         return realtor
 
 
-def extract_data(num_pages: int, start_point: int) -> pd.DataFrame:
+def extract_data(property_types: dict[str, int]) -> pd.DataFrame:
     """Extract data from the website and stores it in a Pandas DataFrame"""
 
     # Setting up DataFrame for storing the extracted data
     columns = [
-        "Price",
-        "Comuna",
-        "Ubicacion",
-        "Dorms",
-        "Baths",
-        "Built Area",
-        "Total Area",
-        "Parking",
+        "price",
+        "comuna",
+        "ubicacion",
+        "dorms",
+        "baths",
+        "built_area",
+        "total_area",
+        "parking",
         "id",
-        "Realtor",
+        "realtor",
+        "property_type",
     ]
 
-    casas_df = pd.DataFrame(columns=columns)
+    properties_df = pd.DataFrame(columns=columns)
 
-    # Iterate over the number of pages
-    for page in range(start_point, num_pages):
+    for property_type, num_pages in property_types.items():
+        print(f"Extracting property type: {property_type}\n")
 
-        # According to robots.txt the crawl delay is 2 seconds
-        sleep(2)
+        # Iterate over the number of pages
+        for page in range(num_pages):
 
-        print(f"pagina: {page}")
-        url = f"https://chilepropiedades.cl/propiedades/venta/casa/region-metropolitana-de-santiago-rm/{page}"
+            # According to robots.txt the crawl delay is 2 seconds
+            sleep(2)
 
-        # Set up custom headers with a User-Agent
-        # and make a GET request to the specified URL, storing the response text.
-        headers = requests.utils.default_headers()
-        headers.update({"User-Agent": "My User Agent 1.0"})
+            print(f"pagina: {page}", end="\r")
+            url = f"https://chilepropiedades.cl/propiedades/venta/{property_type}/region-metropolitana-de-santiago-rm/{page}"
 
-        # Try to get the HTML content of the website
-        # Possible timeout or connection errors
-        try:
-            html_text = requests.get(url=url, headers=headers).text
-        except:
-            print(f"Error en la pagina {page}")
-            continue
+            # Set up custom headers with a User-Agent
+            # and make a GET request to the specified URL, storing the response text.
+            headers = requests.utils.default_headers()
+            headers.update({"User-Agent": "My User Agent 1.0"})
 
-        # Parse the HTML content of the website using BeautifulSoup
-        soup = BeautifulSoup(html_text, "lxml")
+            # Try to get the HTML content of the website
+            # Possible timeout or connection errors
+            try:
+                html_text = requests.get(url=url, headers=headers).text
+            except:
+                print(f"Error en la pagina {page}")
+                continue
 
-        # Find all the <div> elements that contain the house cards
-        casa_card = soup.find_all(
-            "div", class_="clp-publication-element clp-highlighted-container"
-        )
+            # Parse the HTML content of the website using BeautifulSoup
+            soup = BeautifulSoup(html_text, "lxml")
 
-        # Iterate over the house cards
-        for casa in casa_card:
+            # Find all the <div> elements that contain the house cards
+            property_card = soup.find_all(
+                "div", class_="clp-publication-element clp-highlighted-container"
+            )
 
-            # Setting up list house information
-            casa_data = {key: None for key in columns}
+            # Iterate over the house cards
+            for property in property_card:
 
-            # Extract price
-            casa_data["Price"] = find_price(casa)
+                # Setting up list house information
+                property_data = {key: None for key in columns}
 
-            # Extract location
-            location = find_location(casa)
+                # Set up property type
+                property_data["property_type"] = property_type
 
-            casa_data["Comuna"] = location[0]
-            casa_data["Ubicacion"] = location[1]
+                # Extract price
+                property_data["price"] = find_price(property)
 
-            # Extreact number of dorm
-            casa_data["Dorms"] = find_dorms(casa)
+                # Extract location
+                location = find_location(property)
 
-            # Extract number of bathrooms
-            casa_data["Baths"] = find_baths(casa)
+                property_data["comuna"] = location[0]
+                property_data["ubicacion"] = location[1]
 
-            # Extract Built Area
-            casa_data["Built Area"] = find_built_area(casa)
+                # Extreact number of dorm
+                property_data["dorms"] = find_dorms(property)
 
-            # Extract Total Area
-            casa_data["Total Area"] = find_total_area(casa)
+                # Extract number of bathrooms
+                property_data["baths"] = find_baths(property)
 
-            # Extract number of Parking
-            casa_data["Parking"] = find_parking(casa)
+                # Extract Built Area
+                property_data["built_area"] = find_built_area(property)
 
-            # Extract id of the house
-            casa_data["id"] = find_id(casa)
+                # Extract Total Area
+                property_data["total_area"] = find_total_area(property)
 
-            # Extract realtor
-            casa_data["Realtor"] = find_realtor(casa)
+                # Extract number of parking
+                property_data["parking"] = find_parking(property)
 
-            # Add the house information dict casa_data into the houses DataFrame casas_df
-            casas_df.loc[len(casas_df)] = casa_data  # type: ignore
+                # Extract id of the house
+                property_data["id"] = find_id(property)
+
+                # Extract realtor
+                property_data["realtor"] = find_realtor(property)
+
+                # Add the house information dict casa_data into the houses DataFrame casas_df
+                properties_df.loc[len(properties_df)] = property_data  # type: ignore
 
     print("Extraccion Completada!")
-    return casas_df
+    return properties_df
 
 
 def data_cleaner(
-    casas_df: pd.DataFrame, UFtoCLP: float, USDtoCLP: float
+    properties_df: pd.DataFrame, UFtoCLP: float, USDtoCLP: float
 ) -> pd.DataFrame:
-    """Clean the data extracted from the website \n
-    Returns a cleaned DataFrame"""
+    """
+    Clean the data extracted from the website
+    Returns a cleaned DataFrame
+    """
 
     # Find the index of homes that are listed in USD and UF
-    indices_uf = casas_df[casas_df["Price"].str.contains("UF")].index
-    indices_usd = casas_df[casas_df["Price"].str.contains("USD")].index
+    indices_uf = properties_df[properties_df["price"].str.contains("UF")].index
+    indices_usd = properties_df[properties_df["price"].str.contains("USD")].index
 
     # Cleaning the 'Price' column in the DataFrame by removing currency symbols and thousands separators
-    casas_df.loc[indices_uf, "Price"] = casas_df.loc[indices_uf, "Price"].str.replace(
-        "UF", ""
-    )
-    casas_df.loc[indices_usd, "Price"] = casas_df.loc[indices_usd, "Price"].str.replace(
-        "USD", ""
-    )
-    casas_df["Price"] = casas_df["Price"].str.replace(".", "")
+    properties_df.loc[indices_uf, "price"] = properties_df.loc[
+        indices_uf, "price"
+    ].str.replace("UF", "")
+    properties_df.loc[indices_usd, "price"] = properties_df.loc[
+        indices_usd, "price"
+    ].str.replace("USD", "")
+    properties_df["price"] = properties_df["price"].str.replace(".", "")
 
     # Converting the 'Price' column to int64
-    casas_df["Price"] = casas_df["Price"].astype("int64")
+    properties_df["price"] = properties_df["price"].astype("int64")
 
     # Transforming UF and USD to CLP
-    casas_df.loc[indices_uf, "Price"] = casas_df.loc[indices_uf, "Price"] * UFtoCLP
-    casas_df.loc[indices_usd, "Price"] = casas_df.loc[indices_usd, "Price"] * USDtoCLP
+    properties_df.loc[indices_uf, "price"] = (
+        properties_df.loc[indices_uf, "price"] * UFtoCLP
+    )
+    properties_df.loc[indices_usd, "price"] = (
+        properties_df.loc[indices_usd, "price"] * USDtoCLP
+    )
 
     # Creating new columns for storing the price in USD
-    casas_df["Price_USD"] = round(casas_df["Price"] / USDtoCLP)
-    casas_df["Price_UF"] = round(casas_df["Price"] / UFtoCLP)
+    properties_df["price_USD"] = round(properties_df["price"] / USDtoCLP)
+    properties_df["price_UF"] = round(properties_df["price"] / UFtoCLP)
 
     # Renaming "Price" to "Price_CLP"
-    casas_df.rename(columns={"Price": "Price_CLP"}, inplace=True)
+    properties_df.rename(columns={"price": "price_CLP"}, inplace=True)
+    properties_df["price_CLP"] = round(properties_df["price_CLP"])
 
     # Rearrenge the columns
-    casas_df = casas_df[
+    properties_df = properties_df[
         [
-            "Price_CLP",
-            "Price_UF",
-            "Price_USD",
-            "Comuna",
-            "Ubicacion",
-            "Dorms",
-            "Baths",
-            "Built Area",
-            "Total Area",
-            "Parking",
+            "price_CLP",
+            "price_UF",
+            "price_USD",
+            "comuna",
+            "ubicacion",
+            "dorms",
+            "baths",
+            "built_area",
+            "total_area",
+            "parking",
             "id",
-            "Realtor",
+            "realtor",
+            "property_type",
         ]
     ]
 
     # Droping houses that have wrong prices
-    bad_data = casas_df[casas_df["Price_UF"] > 100_000]
+    bad_data = properties_df[
+        (properties_df["price_UF"] > 100_000)
+        & (properties_df["property_type"] == "casa")
+    ]
     indices_malos = bad_data[
-        ~bad_data["Comuna"].str.contains("LasCondes|Vitacura|LoBarnechea")
+        ~bad_data["comuna"].str.contains("LasCondes|Vitacura|LoBarnechea")
     ].index
-    casas_df = casas_df.drop(indices_malos, axis=0)
+    properties_df = properties_df.drop(indices_malos, axis=0)
 
-    bad_data = casas_df[casas_df["Price_UF"] < 1_000]
-    casas_df = casas_df.drop(bad_data.index, axis=0)
-
-    # Convert "Parking" column to numeric values
-    casas_df["Parking"] = pd.to_numeric(casas_df["Parking"], errors="coerce")
+    bad_data = properties_df[properties_df["price_UF"] < 1_000]
+    properties_df = properties_df.drop(bad_data.index, axis=0)
 
     # Drop houses that have wrong parking values
-    bad_data = casas_df[casas_df["Parking"] >= 30]
-    casas_df = casas_df.drop(bad_data.index, axis=0)
+    bad_data = properties_df[properties_df["parking"] >= 30]
+    properties_df = properties_df.drop(bad_data.index, axis=0)
 
     print("Limpieza Completada!")
-    return casas_df
+    return properties_df
