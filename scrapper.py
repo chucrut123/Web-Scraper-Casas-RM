@@ -318,7 +318,7 @@ def data_cleaner(
     properties_df["price"] = properties_df["price"].str.replace(".", "")
 
     # Converting the 'Price' column to int64
-    properties_df["price"] = properties_df["price"].astype("int64")
+    properties_df["price"] = properties_df["price"].astype("float64")
 
     # Transforming UF and USD to CLP
     properties_df.loc[indices_uf, "price"] = (
